@@ -4,9 +4,54 @@
 """
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
+import zipfile
+import os
 import pandas as pd
+import glob
+
+def extract_zip(input_path, extract_to):
+    """Extrae un archivo ZIP en una ubicación específica"""
+    with zipfile.ZipFile(input_path, 'r') as zip_ref:
+        zip_ref.extractall(extract_to)
+
+def create_output_directory(output_path):
+    """Crea un directorio si no existe"""
+    os.makedirs(output_path, exist_ok=True)
+
+def generate_dataset(input_folder, output_file):
+    """Genera un dataset a partir de archivos clasificados en carpetas"""
+    data = []  # Lista para almacenar las filas del dataset
+    labels = ['negative', 'neutral', 'positive']  # Etiquetas
+
+    for label in labels:
+        file_paths = glob.glob(os.path.join(input_folder, label, '*'))
+        for file_path in file_paths:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                phrase = file.read().strip()
+                data.append([phrase, label])  # Agregar frase y etiqueta al dataset
+
+    # Convertir datos a DataFrame y guardarlo como CSV
+    df = pd.DataFrame(data, columns=['phrase', 'target'])
+    df.to_csv(output_file, index=False)
+
+    return df
 
 def pregunta_01():
+    # Extraer archivos ZIP
+    input_zip = 'files/input.zip'
+    extract_to = 'files'
+    extract_zip(input_zip, extract_to)
+
+    # Crear directorio de salida
+    output_dir = 'files/output'
+    create_output_directory(output_dir)
+
+    # Generar datasets
+    train_df = generate_dataset(os.path.join(extract_to, 'input/train'), os.path.join(output_dir, 'train_dataset.csv'))
+    test_df = generate_dataset(os.path.join(extract_to, 'input/test'), os.path.join(output_dir, 'test_dataset.csv'))
+
+    return train_df, test_df
+
     """
     La información requerida para este laboratio esta almacenada en el
     archivo "files/input.zip" ubicado en la carpeta raíz.
@@ -71,42 +116,5 @@ def pregunta_01():
 
 
     """
-
-    with open("files/input/clusters_report.txt", "r", encoding="utf-8") as archivo:
-        contenido = archivo.readlines()
-
-    inicio_datos = 4  # Índice donde comienzan los datos
-    lineas_datos = contenido[inicio_datos:]
-
-    lista_filas = []
-    fila_temp = []
-
-    for linea in lineas_datos:
-        if linea.strip():  # Si la línea no está vacía, la añadimos a la fila temporal
-            fila_temp.append(linea.strip())
-        else:
-            if fila_temp:  # Cuando encontramos una línea vacía, consolidamos la fila y la almacenamos
-                lista_filas.append(" ".join(fila_temp))
-                fila_temp = []
-
-    datos_procesados = []
-    for fila in lista_filas:
-        elementos = fila.split()
-        id_cluster = int(elementos[0])
-        total_palabras = int(elementos[1])
-        porcentaje_palabras = float(elementos[2].replace(",", "."))
-        palabras_clave = (
-            " ".join(elementos[3:])
-            .replace(" ,", ",")
-            .replace(", ", ", ")
-            .strip("%")
-            .rstrip(".")
-            .strip()
-        )
-        datos_procesados.append([id_cluster, total_palabras, porcentaje_palabras, palabras_clave])
-
-    df_resultado = pd.DataFrame(datos_procesados, columns=[
-        "cluster", "cantidad_de_palabras_clave", "porcentaje_de_palabras_clave", "principales_palabras_clave"
-    ])
-
-    return df_resultado
+if __name__ == "__main__":
+  print(pregunta_01())
